@@ -1,7 +1,7 @@
-import React, { createContext, ReactNode, useState } from 'react';
+import React, { createContext, ReactNode, useEffect, useState } from 'react';
 import { api } from '../services/api';
 import Router from 'next/router';
-import { setCookie } from 'nookies';
+import { parseCookies, setCookie } from 'nookies';
 
 type User = {
   email: string;
@@ -29,6 +29,24 @@ export const AuthContext = createContext({} as AuthContextData);
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User>();
   const isAuthenticated = !!user;
+
+  useEffect(() => {
+    const { 'jwt.token': token} = parseCookies();
+
+    if(token){
+      api.get('/me').then(response => {
+        const infos = {
+          email: response.data.email,
+          permissions: response.data.permissions,
+          roles: response.data.roles,
+        } 
+      console.log('infos', infos);
+
+      setUser(infos);
+      })
+    }
+
+  },[]);
 
   async function signIn({ email, password }: SignInCredentials) {
     try {
@@ -58,6 +76,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         permissions,
         roles
       });
+
+      api.defaults.headers['Authorization'] = `Bearer ${token}`
 
       Router.push('/dashboard');
 
