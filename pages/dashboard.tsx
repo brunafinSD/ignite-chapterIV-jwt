@@ -1,4 +1,5 @@
 import { useContext, useEffect } from "react"
+import { Can } from "../components/Can";
 import { AuthContext } from "../contexts/AuthContext"
 import { useCan } from "../hooks/useCan";
 import { setupAPIClient } from "../services/api";
@@ -22,7 +23,11 @@ export default function Dashboard() {
   return (
     <>
       <h1>Dashboard: {user?.email}</h1>
-      {useCanSeeMetrics && <div>Métricas para quem tem todas as permissões e é administrador ou editor</div>}
+      <Can permissions={['metrics.list']} roles={['administrator']}>
+        <div>Métricas para quem tem todas as permissões e é administrador ou editor</div>
+      </Can>
+
+      {/* {useCanSeeMetrics && <div>Métricas para quem tem todas as permissões e é administrador ou editor</div>} */}
     </>
   )
 }
