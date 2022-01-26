@@ -1,7 +1,8 @@
 import React, { createContext, ReactNode, useEffect, useState } from 'react';
-import { api } from '../services/api';
+import { setupAPIClient } from '../services/api';
 import Router from 'next/router';
 import { parseCookies, setCookie, destroyCookie } from 'nookies';
+import { api } from '../services/apiClient';
 
 type User = {
   email: string;
