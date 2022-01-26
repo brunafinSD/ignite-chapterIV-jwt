@@ -1,5 +1,7 @@
+import { destroyCookie } from "nookies";
 import { useContext, useEffect } from "react"
 import { AuthContext } from "../contexts/AuthContext"
+import { AuthTokenError } from "../errors/AuthTokenError";
 import { setupAPIClient } from "../services/api";
 import { api } from "../services/apiClient";
 import { withSSRAuth } from "../utils/withSSRAuth";
@@ -19,9 +21,19 @@ export default function Dashboard(){
 // método executado pelo lado do servidor quando o usuário acessar essa página
 export const getServerSideProps = withSSRAuth(async (ctx) => {
   const apiClient = setupAPIClient(ctx);
-  const response = await apiClient.get('/me');
+  try {
+    const response = await apiClient.get('/me');
+  } catch (error) {
+    destroyCookie(ctx, 'jwt.token');
+    destroyCookie(ctx, 'jwt.refreshToken');
 
-  console.log(response.data);
+    return{
+      redirect:{
+        destination: '/',
+        permanent: false
+      }
+    }
+  }
   
   return {
     props: {}
