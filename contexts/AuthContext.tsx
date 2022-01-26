@@ -16,7 +16,8 @@ type SignInCredentials = {
 }
 
 type AuthContextData = {
-  signIn(credentials: SignInCredentials): Promise<void>;
+  signIn: (credentials: SignInCredentials) => Promise<void>;
+  signOut: () => void;
   isAuthenticated: boolean;
   user?: User;
 }
@@ -27,9 +28,13 @@ type AuthProviderProps = {
 
 export const AuthContext = createContext({} as AuthContextData);
 
-export function signOut(){
+let authChannel: BroadcastChannel;
+
+export function signOut() {
   destroyCookie(undefined, 'jwt.token');
   destroyCookie(undefined, 'jwt.refreshToken');
+
+  authChannel.postMessage('signOut');
 
   Router.push('/');
 }
@@ -39,20 +44,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const isAuthenticated = !!user;
 
   useEffect(() => {
-    const { 'jwt.token': token} = parseCookies();
+    authChannel = new BroadcastChannel('auth');
+    authChannel.onmessage = (message) => {
+      switch (message.data) {
+        case 'signOut':
+          signOut();
+          break;
+        default:
+          break;
+      }
+    }
+  }, []);
 
-    if(token){
+  useEffect(() => {
+    const { 'jwt.token': token } = parseCookies();
+
+    if (token) {
       api.get('/me').then(response => {
-      const {email, permissions, roles} = response.data;
+        const { email, permissions, roles } = response.data;
 
-      setUser({email, permissions, roles});
+        setUser({ email, permissions, roles });
       })
-      .catch(() => {
-        signOut();
-      })
+        .catch(() => {
+          signOut();
+        })
     }
 
-  },[]);
+  }, []);
 
   async function signIn({ email, password }: SignInCredentials) {
     try {
@@ -94,7 +112,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   return (
-    <AuthContext.Provider value={{ signIn, isAuthenticated, user }}>
+    <AuthContext.Provider value={{ signIn, signOut, isAuthenticated, user }}>
       {children}
     </AuthContext.Provider>
   )
