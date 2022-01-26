@@ -1,8 +1,8 @@
 // em páginas que só podem ser acessadas por usuários logados
 
 import { GetServerSideProps, GetServerSidePropsContext, GetServerSidePropsResult } from "next";
-import { redirect } from "next/dist/server/api-utils";
-import { parseCookies } from "nookies";
+import { destroyCookie, parseCookies } from "nookies";
+import { AuthTokenError } from "../errors/AuthTokenError";
 
 /*
 Higher-order function
@@ -24,7 +24,19 @@ export function withSSRAuth<P>(fn: GetServerSideProps<P>): GetServerSideProps{
         }
       }
     }
-
-    return await fn(ctx);
+    try {
+      return await fn(ctx);
+    } catch (error) {
+      if(error instanceof AuthTokenError){
+        destroyCookie(ctx, 'jwt.token');
+        destroyCookie(ctx, 'jwt.refreshToken');
+        return{
+          redirect:{
+            destination: '/',
+            permanent: false
+          }
+        }
+      }
+    }
   }
 }
